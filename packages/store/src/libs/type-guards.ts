@@ -31,6 +31,7 @@ export const isValidOpenApiDocument = (value: unknown): value is UnprocessedOpen
 
   // Check for OpenAPI
   if (typeof value.openapi === 'string') {
+    console.log('OpenAPI', value.openapi)
     return true
   }
 
