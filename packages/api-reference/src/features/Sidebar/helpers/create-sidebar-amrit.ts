@@ -1,12 +1,5 @@
+import type { SidebarEntry } from '@/hooks/old/useSidebar'
 import type { OpenAPIV3_1 } from '@scalar/openapi-types'
-
-// TODO: use zod 4
-export type SidebarEntry = {
-  title: string
-  children?: SidebarEntry[]
-  method?: OpenAPIV3_1.HttpMethods
-  deprecated: boolean
-}
 
 type TraversedResults = { tagged: Map<string, SidebarEntry[]>; untagged: SidebarEntry[] }
 
@@ -57,9 +50,9 @@ export const traversePaths = (content: OpenAPIV3_1.Document): TraversedResults =
 const createWebhookEntry = (
   operation: OpenAPIV3_1.OperationObject,
   method: OpenAPIV3_1.HttpMethods,
-  name = 'Unknown',
+  title = 'Unknown',
 ): SidebarEntry => ({
-  title: name,
+  title,
   method: method,
   deprecated: operation.deprecated ?? false,
 })
@@ -93,8 +86,8 @@ const traverseWebhooks = (content: OpenAPIV3_1.Document, tagMap: Map<string, Sid
 }
 
 /** Handles creating entries for schemas */
-const createSchemaEntry = (schema: OpenAPIV3_1.SchemaObject, name = 'Unknown'): SidebarEntry => ({
-  title: schema.title ?? 'Unknown',
+const createSchemaEntry = (schema: OpenAPIV3_1.SchemaObject, title = 'Unknown'): SidebarEntry => ({
+  title,
   deprecated: false,
 })
 
@@ -102,9 +95,10 @@ const traverseSchemas = (content: OpenAPIV3_1.Document): SidebarEntry[] => {
   const schemas = content.components?.schemas ?? {}
   const untagged: SidebarEntry[] = []
 
-  Object.entries(schemas).forEach(([name, schema]) => {
-    untagged.push(createSchemaEntry(schema, name))
-  })
+  // For loop has over 2x the performance of forEach here
+  for (const name in schemas) {
+    untagged.push(createSchemaEntry(schemas[name], name))
+  }
 
   return untagged
 }

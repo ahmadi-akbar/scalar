@@ -1,17 +1,21 @@
 import { bench, describe, expect, vi } from 'vitest'
 import { computed, toValue } from 'vue'
-
-import { parse } from '@/helpers/parse'
-import { useSidebar as useSidebarOld } from '@/hooks/old/useSidebar'
-import { apiReferenceConfigurationSchema } from '@scalar/types'
 import { createSidebarAmrit } from './create-sidebar-amrit'
+import { useSidebar as useSidebarOld } from '@/hooks/old/useSidebar'
+import { createSidebar } from './create-sidebar'
+import { dereference, normalize, upgrade } from '@scalar/openapi-parser'
+import { apiReferenceConfigurationSchema } from '@scalar/types/api-reference'
+import { parse } from '@/helpers/parse'
 
 // Fetch the Stripe OpenAPI document once for all benchmarks
 const EXAMPLE_DOCUMENT = await fetch(
-  'https://raw.githubusercontent.com/stripe/openapi/refs/heads/master/openapi/spec3.json',
-).then((r) => r.json())
-
-const parsedSpec = await parse(EXAMPLE_DOCUMENT)
+  'https://raw.githubusercontent.com/digitalocean/openapi/refs/heads/main/specification/DigitalOcean-public.v2.yaml',
+).then((r) => r.text())
+const normalized = normalize(EXAMPLE_DOCUMENT)
+const { specification } = upgrade(normalized)
+const { schema } = await dereference(specification)
+const parsedSpec = await parse(schema)
+delete parsedSpec.info.description
 
 // Mock the useConfig hook
 vi.mock('@/hooks/useConfig', () => ({
@@ -36,8 +40,8 @@ vi.mock('vue', () => {
   }
 })
 
-describe('createSidebar', async () => {
-  bench('old (stripe)', async () => {
+describe('createSidebar (digitalOcean)', async () => {
+  bench('old', async () => {
     const { items } = useSidebarOld({
       parsedSpec,
     })
@@ -45,8 +49,16 @@ describe('createSidebar', async () => {
     expect(toValue(items)).toBeDefined()
   })
 
+  bench('hans', async () => {
+    const { items } = createSidebar({
+      content: schema as any,
+    })
+
+    expect(toValue(items)).toBeDefined()
+  })
+
   bench('amrit (stripe)', async () => {
-    const items = createSidebarAmrit(EXAMPLE_DOCUMENT)
+    const items = createSidebarAmrit(schema)
 
     expect(toValue(items)).toBeDefined()
   })
