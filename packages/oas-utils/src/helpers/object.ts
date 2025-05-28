@@ -1,4 +1,7 @@
 // TODO: This is a copy of packages/core-interface/src/database/utility.ts
+
+import type { Entries } from 'type-fest'
+
 /**
  * Overwrite a target object a new replacement object handling removed keys
  */
@@ -20,3 +23,9 @@ export function objectMerge<A extends object, B extends object>(target: A, repla
  * Can probably remove this whenever typescript adds it
  */
 export const getObjectKeys = <T extends object>(obj: T): (keyof T)[] => Object.keys(obj) as (keyof T)[]
+
+/**
+ * Type safe version of Object.entries
+ * Can probably remove this whenever typescript fixes it
+ */
+export const getObjectEntries = <T extends object>(obj: T): Entries<T> => Object.entries(obj) as Entries<T>

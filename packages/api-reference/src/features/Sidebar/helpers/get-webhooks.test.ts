@@ -66,6 +66,11 @@ describe('getWebhooks', () => {
             summary: 'User created webhook',
             tags: ['user'],
           },
+          delete: {
+            operationId: 'userDeleted',
+            summary: 'User deleted webhook',
+            tags: ['admin'],
+          },
         },
         'user.updated': {
           put: {
@@ -77,21 +82,22 @@ describe('getWebhooks', () => {
       },
     } as OpenAPIV3_1.Document
 
-    const filter = (webhook: OpenAPIV3_1.PathItemObject) => {
-      const operation = webhook as OpenAPIV3_1.OperationObject
-      return operation.tags?.includes('user') ?? false
-    }
-
+    const filter = (webhook: OpenAPIV3_1.OperationObject) => webhook.tags?.includes('user')
     const result = getWebhooks(EXAMPLE_DOCUMENT, { filter })
 
     expect(result).toEqual({
-      'user.created': {
-        post: {
-          operationId: 'userCreated',
-          summary: 'User created webhook',
-          tags: ['user'],
+      tagged: {
+        user: {
+          id: 'webhook-user.created-post',
+          title: 'User created webhook',
+          httpVerb: 'post',
+          show: true,
         },
       },
+      titlesById: {
+        'webhook-user.created-post': 'User created webhook',
+      },
+      untagged: [],
     })
   })
 
@@ -117,60 +123,83 @@ describe('getWebhooks', () => {
 
     const result = getWebhooks(EXAMPLE_DOCUMENT)
     expect(result).toEqual({
-      'user.events': {
-        post: {
-          operationId: 'userCreated',
-          summary: 'User created webhook',
+      tagged: {},
+      untagged: [
+        {
+          id: 'webhook-user.events-post',
+          title: 'User created webhook',
+          httpVerb: 'post',
+          show: true,
         },
-        put: {
-          operationId: 'userUpdated',
-          summary: 'User updated webhook',
+        {
+          id: 'webhook-user.events-put',
+          title: 'User updated webhook',
+          httpVerb: 'put',
+          show: true,
         },
-        delete: {
-          operationId: 'userDeleted',
-          summary: 'User deleted webhook',
+        {
+          id: 'webhook-user.events-delete',
+          title: 'User deleted webhook',
+          httpVerb: 'delete',
+          show: true,
         },
+      ],
+      titlesById: {
+        'webhook-user.events-post': 'User created webhook',
+        'webhook-user.events-put': 'User updated webhook',
+        'webhook-user.events-delete': 'User deleted webhook',
       },
     })
   })
 
-  it('handles webhooks being in tags and untagged ones in the default webook group', async () => {
-    expect(
-      await getWebhooks({
-        webhooks: {
-          hello: {
-            post: {
-              tags: ['Foobar'],
-            },
+  it('handles tagged and untagged webhooks', async () => {
+    const EXAMPLE_DOCUMENT = {
+      webhooks: {
+        'user.events': {
+          post: {
+            tags: ['user'],
           },
-          goodbye: {
-            get: {},
+          put: {},
+          delete: {
+            tags: ['admin'],
           },
         },
-      }),
-    ).toMatchObject({
-      tagged: [],
-      entries: [
+        'admin.events': {
+          post: {
+            tags: ['admin'],
+          },
+        },
+      },
+    } as OpenAPIV3_1.Document
+
+    const result = getWebhooks(EXAMPLE_DOCUMENT)
+    expect(result).toEqual({
+      tagged: {},
+      untagged: [
         {
-          title: 'Foobar',
-          children: [
-            {
-              title: 'Hello World',
-            },
-            {
-              title: 'hello',
-            },
-          ],
+          id: 'webhook-user.events-post',
+          title: 'User created webhook',
+          httpVerb: 'post',
+          show: true,
         },
         {
-          title: 'Webhooks',
-          children: [
-            {
-              title: 'goodbye',
-            },
-          ],
+          id: 'webhook-user.events-put',
+          title: 'User updated webhook',
+          httpVerb: 'put',
+          show: true,
+        },
+        {
+          id: 'webhook-user.events-delete',
+          title: 'User deleted webhook',
+          httpVerb: 'delete',
+          show: true,
         },
       ],
+      titlesById: {
+        'webhook-user.events-post': 'User created webhook',
+        'webhook-user.events-put': 'User updated webhook',
+        'webhook-user.events-delete': 'User deleted webhook',
+      },
     })
   })
 

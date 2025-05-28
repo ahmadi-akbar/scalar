@@ -20,7 +20,7 @@ export const getWebhooks = (
     filter,
   }: {
     /** Optional filter to exclude webhooks, return true to include */
-    filter?: (webhook: OpenAPIV3_1.PathItemObject) => boolean
+    filter?: (webhook: OpenAPIV3_1.OperationObject) => boolean
   } = {},
 ): {
   /** Webhooks grouped by tag */
@@ -30,19 +30,22 @@ export const getWebhooks = (
   /** Map of titles by id */
   titlesById: Record<string, string>
 } => {
+  const tagged: Record<string, SidebarEntry> = {}
   const untagged: WebhookEntry[] = []
   const titlesById: Record<string, string> = {}
 
   // Single pass through webhooks to create entries
   for (const [name, webhook] of Object.entries(content?.webhooks ?? {})) {
-    for (const [method, operation] of Object.entries(webhook)) {
+    const webhookEntries = Object.entries(webhook) as [OpenAPIV3_1.HttpMethods, OpenAPIV3_1.OperationObject][]
+
+    for (const [method, operation] of webhookEntries) {
       // Skip if operation is not an object
       if (typeof operation !== 'object') {
         continue
       }
 
       // Apply filter if provided
-      if (filter && !filter(operation as OpenAPIV3_1.PathItemObject)) {
+      if (filter && !filter(operation)) {
         continue
       }
 
@@ -55,17 +58,31 @@ export const getWebhooks = (
       const title = operation.summary ?? name
       titlesById[id] = title
 
-      untagged.push({
-        id,
-        title,
-        httpVerb: method,
-        show: true,
-      })
+      // If tags, add to tagged
+      if (operation.tags?.length) {
+        for (const tag of operation.tags) {
+          tagged[tag] = {
+            id,
+            title,
+            httpVerb: method,
+            show: true,
+          }
+        }
+      }
+      // If no tags, add to untagged
+      else {
+        untagged.push({
+          id,
+          title,
+          httpVerb: method,
+          show: true,
+        })
+      }
     }
   }
 
   return {
-    tagged: {},
+    tagged,
     untagged,
     titlesById,
   }
