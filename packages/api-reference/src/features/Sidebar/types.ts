@@ -1,4 +1,5 @@
 import type { OpenAPIV3_1 } from '@scalar/openapi-types'
+import type { Ref } from 'vue'
 
 export type SidebarEntry = {
   id: string
@@ -14,6 +15,8 @@ export type SidebarEntry = {
 
 export type InputOption = {
   content: OpenAPIV3_1.Document
+  /** We can pass in a ref of the sidebar if we need it higher up */
+  isSidebarOpen?: Ref<boolean>
 }
 
 export type SortOptions = {

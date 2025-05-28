@@ -1,46 +1,72 @@
+import type { SidebarEntry } from '@/features/Sidebar/types'
 import type { OpenAPIV3_1 } from '@scalar/openapi-types'
 
 /**
- * Returns all webhooks from the OpenAPI document.
- * Each webhook can have HTTP methods (get, post, put, etc.) as keys.
+ * Represents a webhook entry in the sidebar.
  */
-export function getWebhooks(
+type WebhookEntry = {
+  id: string
+  title: string
+  httpVerb: string
+  show: boolean
+}
+
+/**
+ * Creates sidebar entries for webhooks, with optional filtering.
+ */
+export const getWebhooks = (
   content?: OpenAPIV3_1.Document,
   {
     filter,
   }: {
+    /** Optional filter to exclude webhooks, return true to include */
     filter?: (webhook: OpenAPIV3_1.PathItemObject) => boolean
   } = {},
-) {
-  if (!content) {
-    return {} as Record<string, Record<OpenAPIV3_1.HttpMethods, OpenAPIV3_1.OperationObject>>
+): {
+  /** Webhooks grouped by tag */
+  tagged: Record<string, SidebarEntry>
+  /** Webhooks not grouped by tag */
+  untagged: WebhookEntry[]
+  /** Map of titles by id */
+  titlesById: Record<string, string>
+} => {
+  const untagged: WebhookEntry[] = []
+  const titlesById: Record<string, string> = {}
+
+  // Single pass through webhooks to create entries
+  for (const [name, webhook] of Object.entries(content?.webhooks ?? {})) {
+    for (const [method, operation] of Object.entries(webhook)) {
+      // Skip if operation is not an object
+      if (typeof operation !== 'object') {
+        continue
+      }
+
+      // Apply filter if provided
+      if (filter && !filter(operation as OpenAPIV3_1.PathItemObject)) {
+        continue
+      }
+
+      // Skip internal or ignored webhooks
+      if (operation['x-internal'] || operation['x-scalar-ignore']) {
+        continue
+      }
+
+      const id = `webhook-${name}-${method}`
+      const title = operation.summary ?? name
+      titlesById[id] = title
+
+      untagged.push({
+        id,
+        title,
+        httpVerb: method,
+        show: true,
+      })
+    }
   }
 
-  const webhooks =
-    // OpenAPI 3.x
-    (
-      Object.keys(content?.webhooks ?? {}).length
-        ? content?.webhooks
-        : // Fallback
-          {}
-    ) as Record<string, Record<OpenAPIV3_1.HttpMethods, OpenAPIV3_1.OperationObject>>
-
-  if (filter) {
-    // Filter each webhook's operations based on the filter function
-    return Object.fromEntries(
-      Object.entries(webhooks)
-        .map(([name, webhook]) => {
-          const filteredOperations = Object.fromEntries(
-            Object.entries(webhook).filter(([_, operation]) => filter(operation as OpenAPIV3_1.PathItemObject)),
-          )
-          // Only include webhooks that have at least one matching operation
-          return Object.keys(filteredOperations).length > 0 ? [name, filteredOperations] : null
-        })
-        .filter(
-          (entry): entry is [string, Record<OpenAPIV3_1.HttpMethods, OpenAPIV3_1.OperationObject>] => entry !== null,
-        ),
-    )
+  return {
+    tagged: {},
+    untagged,
+    titlesById,
   }
-
-  return webhooks
 }

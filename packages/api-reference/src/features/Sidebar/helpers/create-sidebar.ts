@@ -1,4 +1,3 @@
-import { getWebhooks } from '@/features/Sidebar/helpers/get-webhooks'
 import type { InputOption, OperationSortOption, SidebarEntry, SortOptions } from '@/features/Sidebar/types'
 import { getHeadingsFromMarkdown, getLowestHeadingLevel } from '@/libs/markdown'
 import type { OpenAPIV3_1 } from '@scalar/openapi-types'
@@ -33,16 +32,6 @@ type TaggedEntry = {
   displayTitle?: string
   show: boolean
   children: SidebarEntry[]
-}
-
-/**
- * Represents a webhook entry in the sidebar.
- */
-type WebhookEntry = {
-  id: string
-  title: string
-  httpVerb: string
-  show: boolean
 }
 
 /**
@@ -132,7 +121,7 @@ function createTagGroupEntries(
 }
 
 /**
- * Creates sidebar entries for operations organized by tags.
+ * Creates sidebar entries for operations and webhooks organized by tags.
  * If tag groups are present, they are used instead of flat tags.
  */
 function createTaggedEntries(
@@ -204,47 +193,6 @@ function createUntaggedEntries(
   }
 
   return untaggedOperations.map((item) => createOperationEntry(titlesById, { name: 'untagged' }, item))
-}
-
-/**
- * Creates sidebar entries for webhooks.
- * Webhooks are grouped under a single 'Webhooks' section.
- */
-function createWebhookEntries(content: OpenAPIV3_1.Document, titlesById: Record<string, string>): SidebarEntry | null {
-  const webhooks = getWebhooks(content, {
-    filter: (webhook) => !webhook['x-internal'] && !webhook['x-scalar-ignore'],
-  })
-
-  if (Object.keys(webhooks).length === 0) {
-    return null
-  }
-
-  const webhookEntries = Object.entries(webhooks).flatMap(([name, webhook]) =>
-    Object.entries(webhook)
-      .map(([method, operation]): WebhookEntry | null => {
-        if (typeof operation !== 'object') {
-          return null
-        }
-
-        const id = `webhook-${name}-${method}`
-        titlesById[id] = name
-
-        return {
-          id,
-          title: operation.summary ?? name,
-          httpVerb: method,
-          show: true,
-        }
-      })
-      .filter((entry): entry is WebhookEntry => entry !== null),
-  )
-
-  return {
-    id: 'webhooks',
-    title: 'Webhooks',
-    show: true,
-    children: webhookEntries,
-  }
 }
 
 /**
@@ -345,7 +293,7 @@ export function createSidebar(options?: InputOption & SortOptions) {
       filter: (tag) => !tag['x-internal'] && !tag['x-scalar-ignore'],
     })
 
-    // Check for tagged operations
+    // Check for tagged operations - check for tagged webshooks
     const hasTaggedOperations = tags.some(
       (tag) =>
         getOperationsByTag(content, tag, {
@@ -355,9 +303,9 @@ export function createSidebar(options?: InputOption & SortOptions) {
 
     // Build sidebar entries
     const entries: SidebarEntry[] = [
-      // Add heading entries from description
+      // Add heading entries from description - TODO: use the config option
       ...createHeadingEntries(content.info?.description, (heading) => `description/${heading.slug}`),
-      // Add tagged operations
+      // Add tagged operations + webhooks
       ...createTaggedEntries(content, titlesById, tags, options.operationSort),
     ]
 

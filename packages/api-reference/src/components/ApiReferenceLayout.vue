@@ -178,7 +178,7 @@ onBeforeMount(() => updateHash())
 // Disables intersection observer and scrolls to section once it has been opened
 const scrollToSection = async (id?: string) => {
   // TODO: Bring back
-  // isIntersectionEnabled.value = false
+  isIntersectionEnabled.value = false
   updateHash()
 
   if (id) {
@@ -257,41 +257,41 @@ onMounted(() =>
 onUnmounted(() => downloadEventBus.reset())
 
 // Initialize the server state
-onServerPrefetch(() => {
-  const ctx = useSSRContext<SSRState>()
-  if (!ctx) {
-    return
-  }
+// onServerPrefetch(() => {
+//   const ctx = useSSRContext<SSRState>()
+//   if (!ctx) {
+//     return
+//   }
 
-  ctx.payload ||= { data: defaultStateFactory() }
-  ctx.payload.data ||= defaultStateFactory()
+//   ctx.payload ||= { data: defaultStateFactory() }
+//   ctx.payload.data ||= defaultStateFactory()
 
-  // Set initial hash value
-  if (configuration.value.pathRouting) {
-    const id = getPathRoutingId(ctx.url)
-    hash.value = id
-    ctx.payload.data.hash = id
+//   // Set initial hash value
+//   if (configuration.value.pathRouting) {
+//     const id = getPathRoutingId(ctx.url)
+//     hash.value = id
+//     ctx.payload.data.hash = id
 
-    // For sidebar items we need to reset the state as it persists between requests
-    // This is a temp hack, need to come up with a better solution
-    for (const key in collapsedSidebarItems) {
-      if (Object.hasOwn(collapsedSidebarItems, key)) {
-        delete collapsedSidebarItems[key]
-      }
-    }
+//     // For sidebar items we need to reset the state as it persists between requests
+//     // This is a temp hack, need to come up with a better solution
+//     for (const key in collapsedSidebarItems) {
+//       if (Object.hasOwn(collapsedSidebarItems, key)) {
+//         delete collapsedSidebarItems[key]
+//       }
+//     }
 
-    if (id) {
-      setCollapsedSidebarItem(getSectionId(id), true)
-    } else {
-      const firstTag = props.parsedSpec.tags?.[0]
-      if (firstTag) {
-        setCollapsedSidebarItem(getTagId(firstTag), true)
-      }
-    }
-    ctx.payload.data['useSidebarContent-collapsedSidebarItems'] =
-      collapsedSidebarItems
-  }
-})
+//     if (id) {
+//       setCollapsedSidebarItem(getSectionId(id), true)
+//     } else {
+//       const firstTag = props.parsedSpec.tags?.[0]
+//       if (firstTag) {
+//         setCollapsedSidebarItem(getTagId(firstTag), true)
+//       }
+//     }
+//     ctx.payload.data['useSidebarContent-collapsedSidebarItems'] =
+//       collapsedSidebarItems
+//   }
+// })
 
 /**
  * Due to a bug in headless UI, we need to set an ID here that can be shared across server/client
@@ -300,6 +300,7 @@ onServerPrefetch(() => {
  * @see https://github.com/tailwindlabs/headlessui/issues/2979
  */
 provideUseId(() => useId())
+
 // Provide the client layout
 provide(LAYOUT_SYMBOL, 'modal')
 

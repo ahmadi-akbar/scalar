@@ -3,15 +3,15 @@ import { describe, expect, it } from 'vitest'
 import { getWebhooks } from './get-webhooks'
 
 describe('getWebhooks', () => {
-  it('returns empty object when no content is provided', () => {
+  it('returns empty objects when no content is provided', () => {
     const result = getWebhooks()
-    expect(result).toEqual({})
+    expect(result).toEqual({ tagged: {}, untagged: [], titlesById: {} })
   })
 
-  it('returns empty object when content has no webhooks', () => {
+  it('returns empty objects when content has no webhooks', () => {
     const EXAMPLE_DOCUMENT = {} as OpenAPIV3_1.Document
     const result = getWebhooks(EXAMPLE_DOCUMENT)
-    expect(result).toEqual({})
+    expect(result).toEqual({ tagged: {}, untagged: [], titlesById: {} })
   })
 
   it('returns webhooks from OpenAPI 3.x document', () => {
@@ -35,17 +35,24 @@ describe('getWebhooks', () => {
     const result = getWebhooks(EXAMPLE_DOCUMENT)
 
     expect(result).toEqual({
-      'user.created': {
-        post: {
-          operationId: 'userCreated',
-          summary: 'User created webhook',
+      tagged: {},
+      untagged: [
+        {
+          id: 'webhook-user.created-post',
+          title: 'User created webhook',
+          httpVerb: 'post',
+          show: true,
         },
-      },
-      'user.updated': {
-        put: {
-          operationId: 'userUpdated',
-          summary: 'User updated webhook',
+        {
+          id: 'webhook-user.updated-put',
+          title: 'User updated webhook',
+          httpVerb: 'put',
+          show: true,
         },
+      ],
+      titlesById: {
+        'webhook-user.created-post': 'User created webhook',
+        'webhook-user.updated-put': 'User updated webhook',
       },
     })
   })
@@ -124,6 +131,145 @@ describe('getWebhooks', () => {
           summary: 'User deleted webhook',
         },
       },
+    })
+  })
+
+  it('handles webhooks being in tags and untagged ones in the default webook group', async () => {
+    expect(
+      await getWebhooks({
+        webhooks: {
+          hello: {
+            post: {
+              tags: ['Foobar'],
+            },
+          },
+          goodbye: {
+            get: {},
+          },
+        },
+      }),
+    ).toMatchObject({
+      tagged: [],
+      entries: [
+        {
+          title: 'Foobar',
+          children: [
+            {
+              title: 'Hello World',
+            },
+            {
+              title: 'hello',
+            },
+          ],
+        },
+        {
+          title: 'Webhooks',
+          children: [
+            {
+              title: 'goodbye',
+            },
+          ],
+        },
+      ],
+    })
+  })
+
+  it('handles when webhooks are only in tags, there should be no webhook group', async () => {
+    expect(
+      await getItemsForDocument({
+        openapi: '3.1.0',
+        info: {
+          title: 'Hello World',
+          version: '1.0.0',
+        },
+        paths: {
+          '/hello': {
+            get: {
+              summary: 'Hello World',
+              tags: ['Foobar'],
+            },
+          },
+        },
+        webhooks: {
+          hello: {
+            post: {
+              tags: ['Foobar'],
+            },
+          },
+        },
+      }),
+    ).toMatchObject({
+      entries: [
+        {
+          title: 'Foobar',
+          children: [
+            {
+              title: 'Hello World',
+            },
+            {
+              title: 'hello',
+            },
+          ],
+        },
+      ],
+    })
+  })
+
+  it('handles only webhooks in tags', async () => {
+    expect(
+      await getItemsForDocument({
+        openapi: '3.1.0',
+        info: {
+          title: 'Hello World',
+          version: '1.0.0',
+        },
+        webhooks: {
+          hello: {
+            post: {
+              tags: ['Foobar'],
+            },
+          },
+        },
+      }),
+    ).toMatchObject({
+      entries: [
+        {
+          title: 'Foobar',
+          children: [
+            {
+              title: 'hello',
+            },
+          ],
+        },
+      ],
+    })
+  })
+
+  it('handles only webhooks outside tags', async () => {
+    expect(
+      await getItemsForDocument({
+        openapi: '3.1.0',
+        info: {
+          title: 'Hello World',
+          version: '1.0.0',
+        },
+        webhooks: {
+          hello: {
+            post: {},
+          },
+        },
+      }),
+    ).toMatchObject({
+      entries: [
+        {
+          title: 'Webhooks',
+          children: [
+            {
+              title: 'hello',
+            },
+          ],
+        },
+      ],
     })
   })
 })
