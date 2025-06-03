@@ -93,7 +93,7 @@ const handleDiscriminatorChange = (type: string) => {
               transformType="heading"
               :anchorPrefix="id" />
             <OperationParameters
-              :operation="operation"
+              :operation="transformedOperation.information"
               :schemas="schemas"
               @update:modelValue="handleDiscriminatorChange">
             </OperationParameters>

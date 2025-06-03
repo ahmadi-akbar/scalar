@@ -121,7 +121,7 @@ const handleDiscriminatorChange = (type: string) => {
       <div class="operation-details-card">
         <div class="operation-details-card-item">
           <OperationParameters
-            :operation="operation"
+            :operation="transformedOperation"
             :schemas="schemas"
             @update:modelValue="handleDiscriminatorChange" />
         </div>

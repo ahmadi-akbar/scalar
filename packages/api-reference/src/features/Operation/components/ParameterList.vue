@@ -4,11 +4,21 @@ import type { OpenAPIV3_1 } from '@scalar/openapi-types'
 
 import ParameterListItem from './ParameterListItem.vue'
 
+/**
+ * Type guard to check if an object is a ParameterObject
+ */
+function isParameterObject(
+  obj: OpenAPIV3_1.ParameterObject | OpenAPIV3_1.ResponseObject
+): obj ibject {
+  return 'name' in obj && 'in' in obj
+}
+
 withDefaults(
   defineProps<{
-    parameters?: RequestEntity['parameters'] | RequestEntity['responses']
+    parameters?: (OpenAPIV3_1.ParameterObject | OpenAPIV3_1.ResponseObject)[]
     showChildren?: boolean
     collapsableItems?: boolean
+    statusCode?: string
     withExamples?: boolean
     schemas?: Record<string, OpenAPIV3_1.SchemaObject> | unknown
   }>(),
@@ -21,15 +31,14 @@ withDefaults(
 </script>
 <template>
   <div
-    v-if="parameters?.length"
-    class="parameter-list">
-    <div class="parameter-list-title">
+    v-if=">
+    <dimeter-list-title">
       <slot name="title" />
     </div>
     <ul class="parameter-list-items">
       <ParameterListItem
         v-for="item in parameters"
-        :key="item.name"
+        :key="isParameterObject(item) ? item.name : statusCode"
         :collapsableItems="collapsableItems"
         :parameter="item"
         :schemas="schemas"
