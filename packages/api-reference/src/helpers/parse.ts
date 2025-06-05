@@ -58,11 +58,6 @@ const transformResult = (originalSchema: OpenAPIV3_1.Document, items?: Traversed
     schema.components = {}
   }
 
-  // Create empty webhooks object
-  if (!schema.webhooks) {
-    schema.webhooks = {}
-  }
-
   // Servers
   if (!schema.servers) {
     schema.servers = []
@@ -73,19 +68,23 @@ const transformResult = (originalSchema: OpenAPIV3_1.Document, items?: Traversed
     schema.security = []
   }
 
-  // Webhooks
-  const newWebhooks: AnyObject = {}
-
   const parseTag = (item: TraversedEntry) => {
     if (!('children' in item) || !item.children?.length) {
       return
     }
 
     item.children.forEach((child) => {
-      const tagIndex = schema.tags?.findIndex(
-        (tag: OpenAPIV3_1.TagObject) => 'tag' in item && tag.name === item.tag.name,
-      )
-      schema.tags[tagIndex].webhooks ||= []
+      let tagIndex = schema.tags?.findIndex((tag: OpenAPIV3_1.TagObject) => 'tag' in item && tag.name === item.tag.name)
+
+      // If we couldn't find the tag, we add it
+      if (tagIndex === -1 && 'tag' in item) {
+        schema.tags.push({
+          name: item.tag.name,
+          operations: [],
+        })
+        tagIndex = schema.tags.length - 1
+      }
+
       schema.tags[tagIndex].operations ||= []
 
       // Tag
@@ -136,24 +135,6 @@ const transformResult = (originalSchema: OpenAPIV3_1.Document, items?: Traversed
     if ('tag' in item) {
       parseTag(item)
     }
-    // Webhooks
-    if (item.title === 'Webhooks' && 'children' in item && item.children?.length) {
-      item.children.forEach((child) => {
-        if ('webhook' in child && child.name && child.method) {
-          newWebhooks[child.name] ||= {}
-          newWebhooks[child.name][child.method] = {
-            id: child.id,
-            httpVerb: normalizeHttpMethod(child.method),
-            path: child.name,
-            name: child.webhook.summary || child.name || '',
-            description: child.webhook.description || '',
-            isWebhook: true,
-            pathParameters: schema.webhooks?.[child.name ?? '']?.parameters,
-            information: child.webhook,
-          }
-        }
-      })
-    }
   })
 
   Object.keys(schema.components?.schemas ?? {}).forEach((name) => {
@@ -166,10 +147,7 @@ const transformResult = (originalSchema: OpenAPIV3_1.Document, items?: Traversed
   // Remove tags with `x-internal` set to true
   schema.tags = schema.tags?.filter((tag: UnknownObject) => !shouldIgnoreEntity(tag))
 
-  const returnedResult = {
-    ...schema,
-    webhooks: newWebhooks,
-  } as unknown as Spec
+  const returnedResult = schema as unknown as Spec
 
   return returnedResult
 }

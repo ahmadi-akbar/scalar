@@ -16,7 +16,6 @@ import { Introduction } from './Introduction'
 import { Loading } from './Lazy'
 import { Models, ModelsAccordion } from './Models'
 import { TagList } from './Tag'
-import { Webhooks } from './Webhooks'
 
 const props = withDefaults(
   defineProps<{
@@ -157,10 +156,6 @@ const introCardsSlot = computed(() =>
         :server="activeServer"
         :spec="parsedSpec"
         :tags="parsedSpec.tags" />
-    </template>
-
-    <template v-if="parsedSpec.webhooks">
-      <Webhooks :webhooks="parsedSpec.webhooks" />
     </template>
 
     <template v-if="hasModels(parsedSpec) && !config.hideModels">
